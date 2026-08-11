@@ -1,7 +1,7 @@
 # Genomics Variants Analysis Agent
 
-An Automatous agent for a variants data analysis. It reads Many task-specific
-**skills** and calls different \**tools* to perform
+An autonomous  agent for a variant data analysis. It reads Many task-specific
+**skills** and calls different \**tools** to perform
 quality control, annotate variants, and search the
 literature for gene–disease evidence.
 
@@ -14,11 +14,11 @@ Built on:
 
 
 
-\---
+ 
 
 ## Architecture
 
-```
+ 
                     ┌──────────────┐
    Streamlit UI ───►│              │
    (app.py)         │  FastAPI     │
