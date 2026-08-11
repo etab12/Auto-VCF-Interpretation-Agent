@@ -86,7 +86,7 @@ genomics-agent/
 
 ```bash
 git clone https://github.com/etab12/Auto-VCF-Interpretation-Agent.git
-cd genomics-agent
+cd Auto-VCF-Interpretation-Agent
 
 python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\\Scripts\\activate
