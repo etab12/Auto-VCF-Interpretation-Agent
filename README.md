@@ -1,172 +1,54 @@
-# Genomics Variants Analysis Agent
+# Genomics Variant Analysis Agent
 
-An autonomous  agent for a variant data analysis. It reads Many task-specific
-**skills** and calls different \**tools** to perform
-quality control, annotate variants, and search the
-literature for gene–disease evidence.
+A multi-agent workflow for research-oriented genomic variant analysis.
 
-Built on:
+The system takes a **VCF file + disease/phenotype** and coordinates specialized agents to analyze and prioritize candidate variants.
 
-* **LangGraph** for orchestration
-* **FastAPI** 
-* **MCP** 
-* **Streamlit** for the application
+## Workflow
 
-
-
+```text
+VCF + Disease/Phenotype
+        
+    QC Agent
+        
+ Annotation Agent
+        
+Disease-Evidence Agent
+        
+Prioritization Agent
+        
+   Critic Agent
+        
+   Human Review
 ```
 
-## Architecture
+The workflow is orchestrated with **LangGraph**. Agents use deterministic bioinformatics tools such as `bcftools`, VEP, and literature-search 
+tools rather than performing these operations themselves.
 
- 
-                    ┌──────────────┐
-   Streamlit UI ───►│              │
-   (app.py)         │  FastAPI     │
-                    │  (api.py)    │
-   MCP clients ────►│              │
-   (mcp\_server.py)  └──────┬───────┘
-                           │
-                    ┌──────▼───────┐
-                    │  LangGraph   │   agent.py
-                    │  agent loop  │   ├─ loads skills/\*.md into system prompt
-                    └──────┬───────┘   └─ binds tools/ as callable functions
-                           │
-              ┌────────────┼────────────┐
-              ▼            ▼            ▼
-          tools/qc   tools/annotation  tools/literature
-              │            │            │
-           FastQC/     Ensembl VEP    PubMed /
-           MultiQC      ClinVar       PMC
+## Agent Roles
+
+- **QC Agent**  evaluates VCF quality and basic variant statistics.
+- **Annotation Agent**  gathers gene, consequence, frequency, ClinVar, and other variant annotations.
+- **Disease-Evidence Agent**  investigates gene/variant relationships with the provided disease or phenotype.
+- **Prioritization Agent**  integrates the collected evidence and ranks candidates for research follow-up.
+- **Critic Agent**  checks the ranking for missing evidence, unsupported claims, and overinterpretation.
+
+## My Components
+
+```text
+agent.py
+   LangGraph multi-agent orchestration
+
+ skills/
+     qc.md
+     annotation.md
+     disease_evidence.md
+     prioritization.md
+     critic.md
 ```
 
-The LangGraph graph is a standard ReAct cycle: `agent → tools → agent → …`
-until the model stops requesting tool calls. 
+The `skills/` files define **how each specialist should approach its task**, while `agent.py` controls how information moves between the 
+agents.
 
-\---
-
-## Project structure
-
-```
-genomics-agent/
-├── README.md
-├── requirements.txt
-├── .env.example            
-├── .gitignore
-│
-├── config.py               
-├── agent.py                
-├── api.py                  
-├── mcp\_server.py          
-├── app.py                  
-│
-├── skills/                 # Initial skills files 
-│   ├── qc.md
-│   ├── annotation.md
-│   └── literature\_search.md
-│
-├── tools/                 
-│   ├── \_\_init\_\_.py         # TOOLS registry
-│   ├── qc.py
-│   ├── annotation.py
-│   └── literature.py
-│
-├── data/                   
-│   ├── raw/                # input VCF
-│   ├── processed/          # QC reports, annotated VCFs
-│   └── reference/          # genome builds, panels, gene lists
-│
-├── notebooks/             # Quick start 
-└── tests/
-    └── test\_tools.py
-```
-
-\---
-
-## Setup
-
-```bash
-git clone https://github.com/etab12/Auto-VCF-Interpretation-Agent.git
-cd Auto-VCF-Interpretation-Agent
-
-python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\\Scripts\\activate
-
-pip install -r requirements.txt
-
-cp .env.example .env             # copy your API key here 
-```
-
-### Required keys
-
-|Variable|Needed for|
-|-|-|
-|`ANTHROPIC\_API\_KEY`|the agent's LLM|
-|`NCBI\_API\_KEY`|higher PubMed rate limits (optional but recommended)|
-|`NCBI\_EMAIL`|required by NCBI E-utilities etiquette|
-
-\---
-
-## Running
-
-**Streamlit UI** — easiest way to try it:
-
-```bash
-streamlit run app.py
-```
-
-**FastAPI service** — for programmatic use:
-
-```bash
-uvicorn api:app --reload --port 8000
-# docs at http://localhost:8000/docs
-```
-
-```bash
-curl -X POST http://localhost:8000/chat \\
-  -H "Content-Type: application/json" \\
-  -d '{"message": "Run QC on data/raw/sample\_R1.fastq.gz and flag any problems"}'
-```
-
-**MCP server** — to use the tools from Claude Desktop or an MCP-aware IDE:
-
-```bash
-python mcp\_server.py
-```
-
-Then add to your MCP client config:
-
-```json
-{
-  "mcpServers": {
-    "genomics": {
-      "command": "python",
-      "args": \["/absolute/path/to/genomics-agent/mcp\_server.py"]
-    }
-  }
-}
-```
-
-
-
-\---
-
-## Development
-
-```bash
-pytest tests/ -v
-ruff check .
-```
-
-Adding a tool:
-
-1. Write the function in `tools/`, decorated with `@tool` and a clear docstring —
-the docstring *is* the interface the LLM sees.
-2. Register it in `tools/\_\_init\_\_.py`.
-3. Reference it by name in the relevant `skills/\*.md`.
-
-\---
-
-## License
-
-MIT
-
+> This is a research and educational proof of concept. Candidate prioritization is intended for human review and is not a clinical 
+pathogenicity classification.
