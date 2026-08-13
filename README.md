@@ -285,7 +285,7 @@ Since this is a multi-agent system, we divided the work by agent. Each team memb
 
 | Member | GitHub | Contribution |
 |---|---|---|
-| Jana Alghoraibi | [@jalghor](https://github.com/jalghor) | Analysis Agent validation tools, annotation skills |
+| Jana Alghoraibi | [@jalghor](https://github.com/jalghor) | Analysis Agent, validation tools, annotation skills |
 | Etab Alotaibi | [@etab12](https://github.com/etab12) | Analysis Agent, validation tools, annotation skills |
 | Retaj Alshaiabn | [@RetajSWE](https://github.com/RetajSWE) | CrewAI setup, Gradio UI, Research Agent (PubMed tool), Writer Agent |
 | Sara Alsalmi | [@sara-alsalmi](https://github.com/sara-alsalmi) | Research Agent (ClinVar tool), Writer Agent |
