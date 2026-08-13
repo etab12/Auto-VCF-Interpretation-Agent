@@ -10,8 +10,8 @@ research_task = Task(
         "relevant genes and genomic variants that require scientific research.\n\n"
 
         "For each relevant gene or variant:\n"
-        "1. Use the provided research tool to search scientific literature.\n"
-        "2. Prefer reliable sources such as PubMed/NCBI.\n"
+        "1. Use lookup_clinvar_variant with the variant ID to get the directly associated disease.\n"
+        "2. Use search_pubmed for supporting literature.\n"
         "3. Identify relevant papers and scientific evidence.\n"
         "4. Provide PMID or other source identifiers when available.\n"
         "5. Provide source links when available.\n"
