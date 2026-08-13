@@ -1,6 +1,6 @@
 from crewai import Agent
 
-from tools.researchtool import search_pubmed
+from tools.research import search_pubmed
 
 
 research_agent = Agent(

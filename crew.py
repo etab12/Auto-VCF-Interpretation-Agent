@@ -1,12 +1,10 @@
 from crewai import Crew, Process
 
-from agents.validation import validation_agent
 from agents.analysis import analysis_agent
 from agents.research import research_agent
 from agents.writer import writer_agent
 from agents.critic import critic_agent
 
-from tasks.validation_task import validation_task
 from tasks.analysis_task import analysis_task
 from tasks.research_task import research_task
 from tasks.writer_task import writer_task
