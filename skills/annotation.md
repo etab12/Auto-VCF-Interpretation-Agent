@@ -2,51 +2,120 @@
 
 ## Purpose
 
-Annotate variants that passed QC and filtering to collect genomic and clinical information needed for downstream analysis.
+Convert variants that pass the QC and filtering stage into structured, interpretable genomic annotations for downstream evidence analysis.
 
-## Procedure
+The annotation step should identify what each variant is, where it occurs, which gene or transcript it affects, and what existing genomic or clinical information is available for it.
+
+## Workflow
 
 When given a filtered VCF:
 
-1. Confirm that the VCF passed the QC step and identify the genome build.
+### 1. Verify the input
 
-2. Use the available annotation tool, such as VEP, to annotate the variants.
+Before annotation:
 
-3. For each variant, collect available information including:
-   - chromosome and position
-   - reference and alternate alleles
-   - gene
-   - transcript
-   - variant consequence
-   - coding HGVS (HGVSc)
-   - protein HGVS (HGVSp)
-   - existing variant identifiers, such as rsID
-   - population allele frequency, when available
-   - ClinVar clinical significance, when available
+- confirm that the VCF passed the QC stage
+- confirm that the file is readable
+- identify the reference genome build
+- ensure the annotation resource uses the same genome build
 
-4. Preserve the original variant identity so each annotation can be traced back to the input VCF.
+Do not proceed silently when the genome build is unknown or incompatible with the annotation resource.
 
-5. Identify variants for which annotation failed or important annotation fields are missing.
+### 2. Annotate the variants
 
-6. Produce structured annotation results for downstream disease-evidence analysis.
+Use the available annotation tool, such as VEP, to annotate the variants.
+
+Do not manually infer annotations that can be obtained from the annotation tool.
+
+### 3. Collect variant-level information
+
+For each variant, retrieve available information including:
+
+- chromosome
+- genomic position
+- reference allele
+- alternate allele
+- gene symbol
+- transcript
+- variant consequence
+- coding HGVS (HGVSc)
+- protein HGVS (HGVSp)
+- existing variant identifiers, such as rsID
+- population allele frequency, when available
+- ClinVar clinical significance, when available
+
+If multiple transcripts or consequences are returned, preserve the relevant information rather than silently selecting one without explanation.
+
+### 4. Preserve variant identity
+
+Every annotation must remain traceable to the original VCF record.
+
+Preserve the original:
+
+- VCF ID
+- chromosome
+- position
+- reference allele
+- alternate allele
+
+Do not modify the original input VCF during annotation. Store annotated results separately.
+
+### 5. Assess annotation completeness
+
+After annotation:
+
+- record the number of variants submitted
+- record the number successfully annotated
+- identify variants with incomplete or missing annotations
+- report variants that could not be annotated
+- record errors or limitations returned by the annotation tool
+
+Missing information must remain explicitly marked as unavailable rather than inferred.
+
+## Interpretation Boundaries
+
+Annotation describes a variant; it does not by itself determine whether that variant causes disease.
+
+Therefore:
+
+- do not classify a variant as pathogenic solely because it has a high-impact consequence
+- do not interpret rarity alone as evidence of pathogenicity
+- do not treat missing annotation as evidence that a variant is benign
+- do not convert a VUS into pathogenic or benign based on prediction alone
+- preserve uncertain or conflicting ClinVar classifications as reported
+- distinguish annotation evidence from downstream disease-evidence interpretation
 
 ## Rules
 
-- Never infer or invent annotations that were not returned by the annotation tool.
-- Maintain consistency with the genome build of the input VCF.
-- Do not classify a variant as pathogenic based only on its predicted consequence.
-- Do not treat rarity alone as evidence of pathogenicity.
-- Preserve uncertain or conflicting ClinVar classifications as reported.
-- Clearly distinguish missing annotation from evidence that a variant is benign.
-- Report annotation failures explicitly.
+- Use annotation tools rather than guessing genomic consequences.
+- Never invent genes, transcripts, HGVS expressions, frequencies, identifiers, or clinical classifications.
+- Maintain genome-build consistency throughout the workflow.
+- Preserve the original variant identity and provenance.
+- Clearly report missing or unavailable information.
+- Clearly report annotation failures.
+- Keep factual annotation separate from disease interpretation.
 
 ## Output
 
-Return:
+Return structured annotation results that can be passed to the downstream Researcher Agent.
 
-- number of variants submitted for annotation
-- number successfully annotated
-- structured annotation for each variant
+For each variant, include available:
+
+- variant identifier and genomic coordinates
+- REF and ALT alleles
+- gene and transcript
+- consequence
+- HGVSc and HGVSp
+- existing variant identifiers
+- population frequency
+- ClinVar significance
+- annotation warnings or missing fields
+
+Also provide an annotation summary containing:
+
+- total variants submitted
+- total variants successfully annotated
 - genes identified
-- important missing annotations or failures
-- any limitations relevant to downstream analysis
+- variants with incomplete annotation
+- annotation failures
+- important limitation
