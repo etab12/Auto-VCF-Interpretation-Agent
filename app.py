@@ -2,74 +2,74 @@ import gradio as gr
 
 from crewai import Crew, Process
 
-from main import (
-    supervisor_agent,
-    validation_agent,
-    analysis_agent,
-    literature_agent,
-    writer_agent,
-    critic_agent,
-    validation_task,
-    analysis_task,
-    literature_task,
-    writing_task,
-    critic_task,
-)
+from agents.validation import validation_agent
+from agents.analysis import analysis_agent
+from agents.research import research_agent
+from agents.writer import writer_agent
+from agents.critic import critic_agent
+
+from tasks.validation_task import validation_task
+from tasks.analysis_task import analysis_task
+from tasks.research_task import research_task
+from tasks.writer_task import writer_task
+from tasks.critic_task import critic_task
 
 
-def run_analysis(file):
+def run_analysis(file_path):
 
-    if file is None:
+    if file_path is None:
         return "Please upload a VCF file."
 
-    file_path = file
-
+    # Update the validation task with the uploaded file
     validation_task.description = f"""
-    Validate the following VCF file:
+    Validate the uploaded VCF file.
 
     File path:
     {file_path}
 
-    Check whether:
-    1. The file is readable.
-    2. It follows the VCF structure.
-    3. Required VCF information is present.
-    4. Variant records appear usable.
-    5. There are obvious structural problems.
+    Check:
+    1. Whether the file is readable.
+    2. Whether it follows the VCF structure.
+    3. Whether required VCF information is present.
+    4. Whether variant records are usable.
+    5. Whether there are obvious structural problems.
 
     Report the validation result and detected issues.
     """
 
     crew = Crew(
         agents=[
-            supervisor_agent,
             validation_agent,
             analysis_agent,
-            literature_agent,
+            research_agent,
             writer_agent,
             critic_agent,
         ],
         tasks=[
             validation_task,
             analysis_task,
-            literature_task,
-            writing_task,
+            research_task,
+            writer_task,
             critic_task,
         ],
         process=Process.sequential,
         verbose=True,
     )
 
-    result = crew.kickoff()
+    try:
+        result = crew.kickoff()
 
-    return str(result)
+        return str(result)
+
+    except Exception as e:
+        return f"Analysis failed:\n\n{str(e)}"
 
 
 with gr.Blocks(title="Genomics Variant Analysis") as demo:
 
     gr.Markdown(
         """
-        # Genomics Variant Analysis Agent
+        # Genomics Variant Analysis System
 
         Upload a VCF file to start the multi-agent analysis.
         """

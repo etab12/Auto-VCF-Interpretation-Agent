@@ -245,6 +245,7 @@ dependencies = [
     { name = "gradio" },
     { name = "pydantic" },
     { name = "python-dotenv" },
+    { name = "requests" },
     { name = "vcfpy" },
 ]
 
@@ -254,6 +255,7 @@ requires-dist = [
     { name = "gradio", specifier = ">=6.24.0" },
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "python-dotenv", specifier = ">=1.2.2" },
+    { name = "requests", specifier = ">=2.34.2" },
     { name = "vcfpy", specifier = ">=0.14.2" },
 ]
 
