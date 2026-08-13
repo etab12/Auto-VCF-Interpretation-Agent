@@ -1,8 +1,0 @@
-##fileformat=VCFv4.2
-##reference=GRCh38
-##contig=<ID=13>
-##contig=<ID=17>
-##INFO=<ID=SOURCE_ID,Number=1,Type=String,Description="Original ClinVar Variation ID">
-#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
-13	32332869	479296	TG	T	.	PASS	SOURCE_ID=479296
-17	43063375	185900	T	C	.	PASS	SOURCE_ID=185900
