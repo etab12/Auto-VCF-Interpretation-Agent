@@ -1,26 +1,32 @@
-# Auto VCF Interpretation Agent
+# Auto-VCF Interpretation Agent
+
+Multi-Agent AI System for Genomic Variant Analysis
 
 Advanced Agentic AI Systems Engineering
+هندسة أنظمة الذكاء الاصطناعي الوكيلي المتقدمة
 
+SDAIA Academy — August 2026
 
----
+**Presentation:** [View Slides](https://auto-vcf-interpretation--sqh8ndu.gamma.site/)
+
 
 ## Problem or Purpose
 
-Interpreting a genomic variant file (VCF) requires a researcher to manually
-cross-reference clinical databases, search peer-reviewed literature, and
-consolidate findings into a structured report. This is slow, error-prone, and
-requires expertise across bioinformatics and clinical genomics simultaneously.
 
-This project automates that workflow. A user uploads a VCF file containing
-genomic variants. A team of specialized AI agents validates the file, extracts
-the variants, looks up clinical evidence from ClinVar, retrieves relevant
-published papers from PubMed, writes a structured report, and reviews it for
-accuracy — all without the user querying any external source manually.
+VCF files contain dense variant information — genes, genomic positions, and
+annotations — making the data difficult to process manually.
 
-The result is a single plain text report per VCF file with variant findings,
-clinical significance, associated diseases, literature references with full
-URLs, and clearly stated limitations.
+Finding relevant scientific and clinical evidence across databases such as
+PubMed and ClinVar is a manual, time-consuming process.
+
+Reviewing and synthesizing findings from multiple sources requires significant
+effort and increases the risk of inconsistencies or omissions.
+
+This project addresses all three. The Auto-VCF Interpretation Agent automates
+genomic variant interpretation through a multi-agent pipeline. A VCF file
+enters the system and each agent handles a distinct stage: parsing and
+validation, scientific evidence retrieval, structured report generation, and
+report review — without the user querying any external source manually.
 
 ---
 
@@ -85,22 +91,12 @@ to the next as context.
 
 ```mermaid
 flowchart TD
-    U[User] -->|uploads .vcf file| G[Gradio UI\napp.py]
-    G -->|injects file path at runtime| CR[CrewAI Sequential Crew\ncrew.py]
-
-    CR --> AA[Analysis Agent\nagents/analysis.py]
-    AA --> VT[tools/vcf_tools.py\nvalidate_vcf, parse_vcf]
-    AA -->|variant list with ClinVar IDs| RA[Research Agent\nagents/research.py]
-
-    RA --> CV[lookup_clinvar_variant\ntools/research.py]
-    RA --> PM[search_pubmed\ntools/research.py]
-    CV -->|NCBI ClinVar API| DB1[(ClinVar)]
-    PM -->|NCBI E-utilities| DB2[(PubMed)]
-
-    RA -->|evidence summary| WA[Writer Agent\nagents/writer.py]
-    WA --> SK[skills/gene_disease_literature_evidence.md]
-    WA -->|draft report| CA[Critic Agent\nagents/critic.py]
-    CA -->|PASS or NEEDS_REVISION| G
+    U([User]) --> G[Gradio UI]
+    G --> A[Analysis Agent]
+    A --> R[Research Agent]
+    R --> W[Writer Agent]
+    W --> C[Critic Agent]
+    C --> O([Report])
 ```
 
 ---
@@ -109,6 +105,7 @@ flowchart TD
 
 | Component | Technology |
 |---|---|
+| Language | Python 3.13 |
 | LLM | OpenRouter (configurable, defaults to gpt-oss-20b:free) |
 | Agent Framework | CrewAI |
 | UI | Gradio |
@@ -250,25 +247,36 @@ Screenshots of the Gradio interface and sample report output will be added here.
 
 ## Limitations
 
-- The analysis agent does not yet apply automated filtering or annotation pipelines beyond basic VCF parsing.
-- PubMed search is limited to the top 5 most relevant papers per query.
-- ClinVar classifications reflect submitter-provided evidence and may include conflicting interpretations.
-- The system does not make medical diagnoses and is not a clinical decision support tool.
-- Requires an active internet connection for ClinVar and PubMed lookups.
-- Only plain `.vcf` files are supported. Compressed `.vcf.gz` files are not.
-- Running the full crew against a large VCF file may take several minutes depending on LLM response time.
+- Database coverage currently limited to PubMed / ClinVar
+- Designed for research and educational purposes, not clinical diagnosis.
+- LLM-generated results require human review.
 
 ---
 
 ## Future Work
 
-- Complete the analysis agent with automated variant filtering and annotation.
-- Add population allele frequency lookup using the gnomAD API.
-- Add OMIM gene-disease lookup for inheritance pattern context.
-- Switch the report output to rendered Markdown for the Gradio UI.
-- Add automated evaluation against the ground truth labels in
-  `data/raw/expected_labels_afterannotation.tsv`.
+**Ensembl and dbSNP**
+Expanded genomic reference data.
 
+**Human-in-the-Loop Review**
+Allow a clinical reviewer to validate or override agent findings before the final report is approved.
+
+**Extend Datatypes**
+Support additional genomic data formats beyond plain VCF, including VCF.gz and MAF files.
+
+**Backend Integration**
+Add a dedicated backend for data management, processing history, and multi-user support.
+
+---
+
+## Team
+
+| Member | GitHub | Contribution |
+|---|---|---|
+| Jana Alghoraibi | [@RetajSWE](https://github.com/RetajSWE) | |
+| Etab Alotaibi | [@etab12](https://github.com/etab12) | |
+| Retaj Alshaiabn | [@RetajSWE](https://github.com/RetajSWE) | |
+| Sara Alsalmi | [@sara-alsalmi](https://github.com/sara-alsalmi) | |
 ---
 
 ## Course Information
@@ -278,5 +286,7 @@ This project was developed as part of:
 Advanced Agentic AI Systems Engineering
 هندسة أنظمة الذكاء الاصطناعي الوكيلي المتقدمة
 
-SDAIA Academy
-August 9-13, 2026
+SDAIA Academy — August 9-13, 2026
+
+https://github.com/SDAIAAcademy
+
