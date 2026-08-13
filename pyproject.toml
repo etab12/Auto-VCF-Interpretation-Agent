@@ -16,9 +16,4 @@ dependencies = [
     "vcfpy>=0.14.2",
 ]
 
-[project.scripts]
-auto-vcf-interpretation-agent = "auto_vcf_interpretation_agent:main"
 
-[build-system]
-requires = ["uv_build>=0.12.3,<0.13.0"]
-build-backend = "uv_build"

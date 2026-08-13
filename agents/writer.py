@@ -12,8 +12,8 @@ _SKILL = (
 writer_agent = Agent(
     role="Genomics Report Writer",
     goal=(
-        "Create a clear, well-structured plain text report using the verified "
-        "analysis and research results, with full source URLs."
+        "Create a clear, well-structured Markdown report using the verified "
+        "analysis and research results, with inline clickable source links."
     ),
     backstory=(
         "You are a scientific report writer specialising in genomics. "

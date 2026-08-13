@@ -7,26 +7,17 @@ Advanced Agentic AI Systems Engineering
 
 SDAIA Academy — August 2026
 
-**Presentation:** [View Slides](https://auto-vcf-interpretation--sqh8ndu.gamma.site/)
+---
+
+> ### Presentation
+> [View the project slides](https://auto-vcf-interpretation--sqh8ndu.gamma.site/)
+
+---
 
 
 ## Problem or Purpose
 
-
-VCF files contain dense variant information — genes, genomic positions, and
-annotations — making the data difficult to process manually.
-
-Finding relevant scientific and clinical evidence across databases such as
-PubMed and ClinVar is a manual, time-consuming process.
-
-Reviewing and synthesizing findings from multiple sources requires significant
-effort and increases the risk of inconsistencies or omissions.
-
-This project addresses all three. The Auto-VCF Interpretation Agent automates
-genomic variant interpretation through a multi-agent pipeline. A VCF file
-enters the system and each agent handles a distinct stage: parsing and
-validation, scientific evidence retrieval, structured report generation, and
-report review — without the user querying any external source manually.
+Genomic variant interpretation is a multi-step manual process. VCF files contain dense variant data — genes, genomic positions, and annotations — that is difficult to process by hand. Finding relevant clinical and scientific evidence across databases such as PubMed and ClinVar adds further time and effort. Reviewing and synthesizing findings from multiple sources then requires significant work and increases the risk of inconsistencies or omissions. This project automates the entire workflow through a team of specialized AI agents.
 
 ---
 
@@ -37,53 +28,63 @@ User uploads VCF file
         |
         v
 Analysis Agent
-  Validates the VCF file structure
-  Extracts variants: chromosome, position, ref allele, alt allele, gene
+  validate_vcf_file  →  checks file structure, required columns, readability
+  vcf_qc_stats       →  SNV/indel counts, Ti/Tv ratio, PASS rate, QUAL stats
+  vep_annotate       →  Ensembl VEP REST API: gene symbol, consequence, HGVS,
+                         SIFT/PolyPhen predictions, canonical transcript
         |
         v
 Research Agent
-  Calls Lookup ClinVar Variant for each variant ID
-    Returns: gene, clinical significance, associated disease, review status
-  Calls Search PubMed for each relevant gene or variant
-    Returns: paper title, PMID, journal, publication date, PubMed URL
+  lookup_clinvar_variant  →  ClinVar: gene, clinical significance,
+                              associated disease, review status, ClinVar link
+  search_pubmed           →  PubMed: title, PMID, journal, date, PubMed link
         |
         v
 Writer Agent
-  Combines analysis and research outputs
-  Produces a structured plain text report with six fixed sections
-  Labels each fact as [From VCF] or [From external source]
-  Includes full ClinVar and PubMed URLs inline
+  Produces a Markdown report with six fixed sections:
+    ## Summary | ## Variants Identified | ## Gene and Disease Evidence
+    ## Literature Review | ## Limitations | ## Sources
+  Variants table with Chromosome, Position, Ref, Alt, Gene, Significance
+  Inline clickable links for ClinVar and PubMed
         |
         v
 Critic Agent
-  Reviews the report for accuracy, consistency, and unsupported claims
-  Returns PASS or NEEDS_REVISION with reviewer comments
+  Reviews for factual consistency, unsupported claims, source relevance
+  Returns PASS + full report, or NEEDS_REVISION + comments
         |
         v
-Final report returned to the Gradio UI
+Final Markdown report rendered in the Gradio UI
 ```
 
 ---
 
 ## How the Agent Works
 
-The system uses CrewAI with a sequential process. Each agent hands its output
-to the next as context.
+The system uses CrewAI with a sequential process. Each agent receives the
+output of the previous agent as context.
 
 1. The user uploads a `.vcf` file through the Gradio interface in `app.py`.
-2. The file path is injected into the analysis task description at runtime.
-3. The analysis agent reads the VCF using `vcfpy` and extracts variant records,
-   including the `SOURCE_ID` field which contains ClinVar Variation IDs.
-4. The research agent receives the variant list and calls:
-   - `lookup_clinvar_variant` — NCBI ClinVar esummary API, returns gene,
-     germline classification, associated disease, and review status.
-   - `search_pubmed` — NCBI E-utilities esearch and esummary, returns
-     paper titles, PMIDs, journals, dates, and PubMed links.
-5. The writer agent loads `skills/gene_disease_literature_evidence.md` at
-   startup. This skill file provides evidence classification guidelines,
-   conflict handling instructions, and evidence strength evaluation rules.
-6. The writer produces a report using six fixed sections in a fixed order.
-7. The critic agent checks the report and passes or requests revisions.
+2. The file path is injected into the analysis task at runtime.
+3. The **analysis agent** runs three tools in sequence:
+   - `validate_vcf_file` — checks file existence, gzip support, `##fileformat` header,
+     mandatory `#CHROM` columns, and counts malformed lines.
+   - `vcf_qc_stats` — computes offline QC metrics from the file: SNV/indel/MNV
+     counts, transition/transversion ratio, FILTER distribution, PASS rate,
+     QUAL percentiles, per-chromosome counts, and missing-genotype rate.
+   - `vep_annotate` — sends variants in batches to the Ensembl VEP REST API and
+     returns gene symbol, consequence terms, impact, HGVS notation, canonical
+     transcript, and SIFT/PolyPhen predictions.
+4. The **research agent** receives the annotated variant list and calls:
+   - `lookup_clinvar_variant` — queries NCBI ClinVar by Variation ID, returns
+     gene, germline classification, associated disease, and review status.
+   - `search_pubmed` — queries NCBI PubMed, returns titles, PMIDs, journals,
+     dates, and links.
+5. The **writer agent** loads `skills/gene_disease_literature_evidence.md` at
+   startup for evidence classification rules. It produces a Markdown report
+   with six `##` sections and a variants table with inline clickable links.
+6. The **critic agent** receives the report as context, checks it for factual
+   consistency and unsupported claims, then returns PASS followed by the
+   full report, or NEEDS_REVISION with specific comments.
 
 ---
 
@@ -92,11 +93,11 @@ to the next as context.
 ```mermaid
 flowchart TD
     U([User]) --> G[Gradio UI]
-    G --> A[Analysis Agent]
-    A --> R[Research Agent]
-    R --> W[Writer Agent]
-    W --> C[Critic Agent]
-    C --> O([Report])
+    G --> A[Analysis Agent\nValidate · QC · Annotate]
+    A --> R[Research Agent\nClinVar · PubMed]
+    R --> W[Writer Agent\nMarkdown Report]
+    W --> C[Critic Agent\nReview · PASS]
+    C --> O([Final Report])
 ```
 
 ---
@@ -106,23 +107,13 @@ flowchart TD
 | Component | Technology |
 |---|---|
 | Language | Python 3.13 |
-| LLM | OpenRouter (configurable, defaults to gpt-oss-20b:free) |
 | Agent Framework | CrewAI |
+| LLM | OpenRouter |
 | UI | Gradio |
-| VCF Parsing | vcfpy |
-| External APIs | NCBI E-utilities — ClinVar and PubMed (free, no key required) |
-| Agent Skills | skills/gene_disease_literature_evidence.md, annotation.md, qc.md |
-| VCF Tools | tools/vcf_tools.py — validate_vcf, parse_vcf |
-| Research Tools | tools/research.py — lookup_clinvar_variant, search_pubmed |
+| VCF Format | vcfpy |
+| Scientific Databases | PubMed / ClinVar |
+| Agent Skills | gene_disease_literature_evidence, annotation, qc |
 | Runtime | uv |
-
-OpenRouter was selected because it provides a single unified API endpoint for
-multiple LLM providers, including free-tier models, which allows the project to
-run without a paid API subscription.
-
-NCBI E-utilities was selected because it is the authoritative free API for
-ClinVar and PubMed, the two primary sources for clinical variant evidence and
-genomics literature.
 
 ---
 
@@ -154,7 +145,10 @@ Auto-VCF-Interpretation-Agent/
 │
 ├── tools/
 │   ├── __init__.py
-│   ├── vcf_tools.py              # validate_vcf, parse_vcf
+│   ├── vcf_io.py                 # shared VCF parsing utilities
+│   ├── validate_tool.py          # validate_vcf_file
+│   ├── qc_tool.py                # vcf_qc_stats
+│   ├── vep_tool.py               # vep_annotate
 │   └── research.py               # lookup_clinvar_variant, search_pubmed
 │
 ├── skills/
@@ -241,7 +235,11 @@ appears in the output panel when the critic agent returns PASS.
 
 ## Example Output
 
-Screenshots of the Gradio interface and sample report output will be added here.
+The system runs through a Gradio web interface where the user uploads a `.vcf` file and receives a structured Markdown report once all agents complete their pipeline stages.
+
+![Analysis output](output_screenshots/output1.png)
+
+![Report output](output_screenshots/output2.png)
 
 ---
 
@@ -255,16 +253,16 @@ Screenshots of the Gradio interface and sample report output will be added here.
 
 ## Future Work
 
-**Ensembl and dbSNP**
+- **Ensembl and dbSNP**
 Expanded genomic reference data.
 
-**Human-in-the-Loop Review**
+- **Human-in-the-Loop Review**
 Allow a clinical reviewer to validate or override agent findings before the final report is approved.
 
-**Extend Datatypes**
+- **Extend Datatypes**
 Support additional genomic data formats beyond plain VCF, including VCF.gz and MAF files.
 
-**Backend Integration**
+- **Backend Integration**
 Add a dedicated backend for data management, processing history, and multi-user support.
 
 ---
@@ -273,10 +271,11 @@ Add a dedicated backend for data management, processing history, and multi-user 
 
 | Member | GitHub | Contribution |
 |---|---|---|
-| Jana Alghoraibi | [@RetajSWE](https://github.com/RetajSWE) | |
-| Etab Alotaibi | [@etab12](https://github.com/etab12) | |
-| Retaj Alshaiabn | [@RetajSWE](https://github.com/RetajSWE) | |
-| Sara Alsalmi | [@sara-alsalmi](https://github.com/sara-alsalmi) | |
+| Jana Alghoraibi | [@jalghor](https://github.com/jalghor) | Analysis Agent, tools, and skills |
+| Etab Alotaibi | [@etab12](https://github.com/etab12) | Analysis Agent, tools, and skills |
+| Retaj Alshaiabn | [@RetajSWE](https://github.com/RetajSWE) | Gradio UI and web interface, Research Agent and Writer Agent |
+| Sara Alsalmi | [@sara-alsalmi](https://github.com/sara-alsalmi) | Research Agent and Writer Agent |
+
 ---
 
 ## Course Information
