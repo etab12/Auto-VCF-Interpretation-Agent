@@ -51,6 +51,7 @@ When given a VCF:
 - Clearly distinguish observed QC findings from recommendations.
 - If important QC information is missing, report the limitation.
 - Do not treat missing quality information as evidence that a variant failed QC.
+- Preserve the original VCF and write any filtered output to a separate file.
 
 ## Output
 
