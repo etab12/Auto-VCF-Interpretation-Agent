@@ -173,13 +173,25 @@ git clone https://github.com/etab12/Auto-VCF-Interpretation-Agent.git
 cd Auto-VCF-Interpretation-Agent
 ```
 
-Install dependencies using uv:
+Install uv:
+
+```bash
+pip install uv
+```
+
+Add CrewAI:
+
+```bash
+uv add crewai
+```
+
+Install all remaining dependencies:
 
 ```bash
 uv sync
 ```
 
-Copy the environment template:
+Copy the environment template and add your API key:
 
 ```bash
 cp .env.example .env
@@ -269,12 +281,14 @@ Add a dedicated backend for data management, processing history, and multi-user 
 
 ## Team
 
+Since this is a multi-agent system, we divided the work by agent. Each team member owned one or more agents end-to-end, including the tools and tasks that go with them.
+
 | Member | GitHub | Contribution |
 |---|---|---|
-| Jana Alghoraibi | [@jalghor](https://github.com/jalghor) | Analysis Agent, tools, and skills |
-| Etab Alotaibi | [@etab12](https://github.com/etab12) | Analysis Agent, tools, and skills |
-| Retaj Alshaiabn | [@RetajSWE](https://github.com/RetajSWE) | Gradio UI and web interface, Research Agent and Writer Agent |
-| Sara Alsalmi | [@sara-alsalmi](https://github.com/sara-alsalmi) | Research Agent and Writer Agent |
+| Jana Alghoraibi | [@jalghor](https://github.com/jalghor) | Analysis Agent, QC and validation tools, annotation skills |
+| Etab Alotaibi | [@etab12](https://github.com/etab12) | Analysis Agent, QC and validation tools, annotation skills |
+| Retaj Alshaiabn | [@RetajSWE](https://github.com/RetajSWE) | CrewAI setup, Gradio UI, Research Agent, Writer Agent |
+| Sara Alsalmi | [@sara-alsalmi](https://github.com/sara-alsalmi) | Research Agent, Writer Agent |
 
 ---
 
