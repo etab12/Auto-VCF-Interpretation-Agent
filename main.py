@@ -1,144 +1,375 @@
+import os
+
+from dotenv import load_dotenv
+
 from crewai import Agent, Task, Crew, Process
 
+from tools.vcf_tools import (
+    validate_vcf,
+    parse_vcf,
+)
 
-# =========================
+
+# =========================================================
+# Environment
+# =========================================================
+
+load_dotenv()
+
+MODEL = os.getenv(
+    "MODEL",
+    "openrouter/openai/gpt-oss-20b:free"
+)
+
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+
+if not OPENROUTER_API_KEY:
+    raise ValueError(
+        "OPENROUTER_API_KEY is missing from .env"
+    )
+
+
+# =========================================================
 # Agents
-# =========================
+# =========================================================
 
 supervisor_agent = Agent(
-    role="Supervisor",
-    goal="Manage the genomics analysis workflow and ensure all stages are completed correctly.",
-    backstory=(
-        "You are a supervisor responsible for coordinating a team of specialized "
-        "genomics agents. You review their outputs and make sure the final report "
-        "is complete and consistent."
+    role="Genomics Workflow Supervisor",
+
+    goal=(
+        "Coordinate the genomics analysis workflow and make sure "
+        "each specialized agent completes its assigned stage."
     ),
-    verbose=True
+
+    backstory=(
+        "You supervise a team of specialized genomics agents. "
+        "You make sure that validation happens before analysis, "
+        "analysis happens before reporting, and the final report "
+        "is reviewed before approval."
+    ),
+
+    llm=MODEL,
+
+    verbose=True,
 )
+
 
 validation_agent = Agent(
     role="Genomic Data Validation Specialist",
-    goal="Validate the uploaded VCF data before analysis.",
-    backstory=(
-        "You specialize in checking genomic data quality and VCF structure. "
-        "Your job is to identify invalid or incomplete input data before analysis begins."
+
+    goal=(
+        "Validate the uploaded VCF file before any genomic analysis "
+        "takes place."
     ),
-    verbose=True
+
+    backstory=(
+        "You specialize in genomic data validation and VCF files. "
+        "You inspect the actual uploaded file using Python tools. "
+        "You never guess whether a VCF is valid."
+    ),
+
+    tools=[
+        validate_vcf
+    ],
+
+    llm=MODEL,
+
+    verbose=True,
 )
+
 
 analysis_agent = Agent(
     role="Genomic Variant Analysis Specialist",
-    goal="Analyze genomic variants and identify relevant gene and disease evidence.",
-    backstory=(
-        "You specialize in genomic variant analysis. You examine validated variants "
-        "and identify relevant genetic and disease-related information without "
-        "inventing unsupported evidence."
+
+    goal=(
+        "Analyze validated genomic variants and extract their "
+        "basic genomic information."
     ),
-    verbose=True
+
+    backstory=(
+        "You specialize in genomic variant analysis. "
+        "You work only with information extracted from the actual "
+        "VCF file and never invent genomic evidence."
+    ),
+
+    tools=[
+        parse_vcf
+    ],
+
+    llm=MODEL,
+
+    verbose=True,
 )
+
 
 literature_agent = Agent(
     role="Scientific Literature Researcher",
-    goal="Find scientific evidence related to relevant genes and genomic variants.",
-    backstory=(
-        "You specialize in biomedical literature research. You search scientific "
-        "sources such as PubMed and summarize relevant evidence."
+
+    goal=(
+        "Research scientific evidence related to genes and variants "
+        "identified during genomic analysis."
     ),
-    verbose=True
+
+    backstory=(
+        "You specialize in biomedical literature research. "
+        "You summarize scientific evidence and clearly distinguish "
+        "available evidence from information that was not found."
+    ),
+
+    llm=MODEL,
+
+    verbose=True,
 )
+
 
 writer_agent = Agent(
-    role="Medical Report Writer",
-    goal="Create a clear and structured report from the analysis and literature results.",
-    backstory=(
-        "You specialize in writing clear scientific reports. You combine verified "
-        "results while clearly separating observed data from external evidence."
+    role="Genomics Report Writer",
+
+    goal=(
+        "Create a clear and structured genomics analysis report."
     ),
-    verbose=True
+
+    backstory=(
+        "You write scientific reports using the results produced by "
+        "the other agents. You separate observed variant data from "
+        "external scientific evidence and clearly state limitations."
+    ),
+
+    llm=MODEL,
+
+    verbose=True,
 )
+
 
 critic_agent = Agent(
-    role="Report Critic",
-    goal="Review the generated report for accuracy, consistency, and unsupported claims.",
-    backstory=(
-        "You are a critical reviewer. You identify missing information, contradictions, "
-        "unsupported claims, and problems with the sources used in the report."
+    role="Genomics Report Critic",
+
+    goal=(
+        "Review the final genomics report for accuracy, consistency, "
+        "missing information, and unsupported claims."
     ),
-    verbose=True
+
+    backstory=(
+        "You are a strict scientific reviewer. You check whether "
+        "claims are supported by the available evidence and identify "
+        "anything that should be corrected before final approval."
+    ),
+
+    llm=MODEL,
+
+    verbose=True,
 )
 
 
-# =========================
+# =========================================================
 # Tasks
-# =========================
+# =========================================================
 
 validation_task = Task(
-    description=(
-        "Validate the provided VCF input. Check whether the file is readable, "
-        "has the required VCF structure, and contains usable genomic variant data. "
-        "Report any problems found."
-    ),
-    expected_output=(
-        "A validation result stating whether the VCF is valid, "
-        "along with any detected issues."
-    ),
-    agent=validation_agent
+    description="""
+    Validate the uploaded VCF file.
+
+    The file path will be provided at runtime.
+
+    IMPORTANT:
+    You MUST use the validate_vcf tool to inspect the actual file.
+
+    Check:
+    - File existence
+    - VCF readability
+    - VCF structure
+    - Presence of variant records
+    - Number of variants
+    - Obvious validation problems
+
+    Do not guess.
+
+    Return a clear validation result and state whether
+    the workflow can continue.
+    """,
+
+    expected_output="""
+    A validation report containing:
+
+    - VALID or INVALID
+    - Number of variants
+    - Detected problems
+    - Whether analysis can continue
+    """,
+
+    agent=validation_agent,
 )
+
 
 analysis_task = Task(
-    description=(
-        "Analyze the genomic variants after successful validation. "
-        "Extract relevant variant information and identify available "
-        "gene and disease-related evidence."
-    ),
-    expected_output=(
-        "A structured summary of the relevant variants, genes, "
-        "and available disease-related evidence."
-    ),
-    agent=analysis_agent
+    description="""
+    Analyze the VCF after successful validation.
+
+    IMPORTANT:
+    You MUST use the parse_vcf tool to read the actual VCF file.
+
+    Extract available information such as:
+
+    - Chromosome
+    - Position
+    - Reference allele
+    - Alternative allele
+
+    Do not invent genes, diseases, clinical significance,
+    or other genomic evidence.
+
+    Only report information actually available from the file
+    or from verified external sources.
+    """,
+
+    expected_output="""
+    A structured variant analysis containing:
+
+    - Number of variants
+    - Variant information
+    - Available genomic information
+    - Any limitations
+    """,
+
+    agent=analysis_agent,
+
+    context=[
+        validation_task
+    ],
 )
+
 
 literature_task = Task(
-    description=(
-        "Research the relevant genes and variants identified during analysis. "
-        "Find supporting scientific literature and summarize the relevant evidence."
-    ),
-    expected_output=(
-        "A list of relevant scientific evidence with short summaries "
-        "and source identifiers when available."
-    ),
-    agent=literature_agent
+    description="""
+    Review the results of the genomic analysis.
+
+    Identify relevant genes or variants that require
+    scientific literature research.
+
+    For each relevant item:
+
+    - Identify the gene or variant
+    - Search for scientific evidence when tools are available
+    - Summarize relevant evidence
+    - Clearly identify the source
+    - Do not invent publications or evidence
+
+    If no literature evidence is available, state that clearly.
+    """,
+
+    expected_output="""
+    A literature evidence summary containing:
+
+    - Gene or variant
+    - Relevant scientific evidence
+    - Source information
+    - Short explanation
+    - Evidence limitations
+    """,
+
+    agent=literature_agent,
+
+    context=[
+        analysis_task
+    ],
 )
+
 
 writing_task = Task(
-    description=(
-        "Create a structured final report using the validation, variant analysis, "
-        "and literature research results. Clearly separate observed data from "
-        "external evidence and include limitations."
-    ),
-    expected_output=(
-        "A clear and structured genomics analysis report with sources "
-        "and limitations."
-    ),
-    agent=writer_agent
+    description="""
+    Create a structured genomics analysis report.
+
+    Use the validation, analysis, and literature results.
+
+    The report should contain:
+
+    1. Input summary
+    2. Validation result
+    3. Variant analysis
+    4. Gene/disease evidence
+    5. Literature evidence
+    6. Limitations
+    7. Sources
+
+    Clearly separate:
+
+    - Information directly observed from the VCF
+    - Information obtained from external sources
+
+    Never make a medical diagnosis.
+
+    Use cautious scientific language such as:
+
+    "This variant has been associated with..."
+
+    rather than:
+
+    "The patient has this disease."
+    """,
+
+    expected_output="""
+    A clear structured genomics research report
+    containing findings, evidence, sources, and limitations.
+    """,
+
+    agent=writer_agent,
+
+    context=[
+        validation_task,
+        analysis_task,
+        literature_task,
+    ],
 )
+
 
 critic_task = Task(
-    description=(
-        "Review the generated report. Check factual consistency, missing information, "
-        "unsupported claims, and source relevance. Return PASS if the report is ready "
-        "or NEEDS_REVISION with specific comments."
-    ),
-    expected_output=(
-        "PASS or NEEDS_REVISION, followed by concise review comments."
-    ),
-    agent=critic_agent
+    description="""
+    Critically review the generated genomics report.
+
+    Check:
+
+    - Factual consistency
+    - Unsupported claims
+    - Missing information
+    - Contradictions
+    - Source relevance
+    - Separation between observed data and external evidence
+    - Medical safety
+
+    Return:
+
+    PASS
+
+    if the report is acceptable.
+
+    Otherwise return:
+
+    NEEDS_REVISION
+
+    followed by concise revision comments.
+    """,
+
+    expected_output="""
+    PASS
+
+    or
+
+    NEEDS_REVISION
+
+    followed by specific review comments.
+    """,
+
+    agent=critic_agent,
+
+    context=[
+        writing_task
+    ],
 )
 
 
-# =========================
+# =========================================================
 # Crew
-# =========================
+# =========================================================
 
 crew = Crew(
     agents=[
@@ -147,30 +378,56 @@ crew = Crew(
         analysis_agent,
         literature_agent,
         writer_agent,
-        critic_agent
+        critic_agent,
     ],
+
     tasks=[
         validation_task,
         analysis_task,
         literature_task,
         writing_task,
-        critic_task
+        critic_task,
     ],
+
     process=Process.sequential,
-    verbose=True
+
+    verbose=True,
 )
 
 
-# =========================
+# =========================================================
 # Run
-# =========================
+# =========================================================
+
+def run_crew(file_path: str):
+
+    if not file_path:
+        return "No VCF file was provided."
+
+    result = crew.kickoff(
+        inputs={
+            "file_path": file_path
+        }
+    )
+
+    return result
+
 
 if __name__ == "__main__":
 
-    result = crew.kickoff()
+    print("=" * 60)
+    print("GENOMICS VARIANT ANALYSIS")
+    print("=" * 60)
+
+    file_path = input(
+        "\nEnter the path to your VCF file: "
+    ).strip()
+
+    result = run_crew(file_path)
 
     print("\n")
     print("=" * 60)
     print("FINAL RESULT")
     print("=" * 60)
+
     print(result)
