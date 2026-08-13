@@ -1,6 +1,9 @@
 import requests
 
+from crewai.tools import tool
 
+
+@tool("Search PubMed")
 def search_pubmed(query: str, max_results: int = 5) -> str:
     """
     Search PubMed for scientific papers related to a gene or genomic variant.
@@ -53,7 +56,6 @@ def search_pubmed(query: str, max_results: int = 5) -> str:
     papers = []
 
     for pmid in pmids:
-
         paper = summary_data.get("result", {}).get(pmid, {})
 
         title = paper.get("title", "Unknown title")
@@ -74,5 +76,9 @@ PubMed: https://pubmed.ncbi.nlm.nih.gov/{pmid}/
 
 
 if __name__ == "__main__":
-    result = search_pubmed("BRCA1", 3)
+    result = search_pubmed.run(
+        query="BRCA1",
+        max_results=3
+    )
     print(result)
+    
